@@ -70,64 +70,51 @@ class orderActionData(BaseModel):
 
 @app.post("/sign_up_consumer")
 def signUp_consumer(data: ConsumerData):
-    print(data)
     acc_id = db.insert_user("Consumers",data.firstName,data.lastName,data.phoneNumber,data.email, data.password, data.address)
-    return {"success": True, "id":acc_id}
+    return {"success": True, "id":acc_id} if acc_id != False else {"success":False}
 
 @app.post("/sign_up_seller")
 def signUp_seller(data: SellerData):
-    print(data)
     acc_id = db.insert_user("Sellers",data.firstName,data.lastName,data.phoneNumber, data.email, data.password, data.address,data.store_name,data.store_photo)
-    return {"success": True, "id":acc_id}
+    return {"success": True, "id":acc_id} if acc_id != False else {"success":False}
 
 @app.get("/getTodaysProducts")
 def getHomepageProduct():
-    print("I have gotten request")
     items = db.get_today_items()
     return items
 
 @app.post("/add_item_to_store")
 def addItemToStore(data: ItemData):
-    print("Data received", data)
     product_id = db.insert_product(data.itemSeller, data.itemImages,data.itemName,data.itemDescription, data.itemPrice, data.itemQuantity, data.itemMainCat, data.itemSubCat)
-    print(data.itemDescription)
-    return {"success": True, "data":{"id": product_id, "name": data.itemName, "quantity": data.itemQuantity, "price":data.itemPrice, "photo":data.itemImages[0]}, "description":data.itemDescription}
+    return {"success": True, "data":{"id": product_id, "name": data.itemName, "quantity": data.itemQuantity, "price":data.itemPrice, "photo":data.itemImages[0]}, "description":data.itemDescription} if product_id != False else {"success":False}
 
 @app.post("/restock_item")
 def restockItem(data: restockData):
-    print("Restocking...")
     result = db.restock(data.restockNumber, data.itemID)
     return result
 
 @app.get("/take_down/{id}")
 def TakeDown(id: str):
-    print("Taking...")
-    print(id)
     return True
 
 @app.get("/store_orders/{id}")
 def get_store_orders(id: str):
-    print("Getting store orders...")
     result = db.getStoreOrders(id)
-    print(result)
-    return {"success": True, "data": result}
+    return {"success": True, "data": result} if result else {"success":False}
 
 @app.get("/store_items/{id}")
 def get_store_items(id: str):
-    print("Getting store items...")
     items = db.get_store_items(id)
-    return {"success": True, "data":items}
+    return {"success": True, "data":items} if items else {"success":False}
 
 @app.get("/category/{mainCat}/{subCat}")
 def getCategory(mainCat:str, subCat:str):
     subCategory = subCat.split(",")
     result = db.getCategories(mainCat, subCategory)
-    print(mainCat, subCategory)
-    return {"success":True, "data":result}
+    return {"success":True, "data":result} if result else {"success":False}
 
 @app.get("/get_cart_content/{cartlist}")
 def getCartContent(cartlist:str):
-    print(cartlist)
     content = []
     cartlist = cartlist.split(",")
     for id in cartlist:
@@ -137,16 +124,13 @@ def getCartContent(cartlist:str):
 
 @app.get("/getProductDetails/{ProductID}")
 def getProductDetails(ProductID:str):
-    print(ProductID)
     item = db.get_product_details(ProductID)
-    return {"success": True, "data": item}
+    return {"success": True, "data": item} if item else {"success":False}
 
 @app.post("/complete_order")
 def completeOrder(orderDetails: orderData):
-    print(orderDetails)
     result = db.completeOrder(orderDetails.product, orderDetails.address, orderDetails.consumer, orderDetails.amountPaid, orderDetails.quantity)
-    print(result)
-    return {"success": True, "data": orderDetails}
+    return {"success": True, "data": orderDetails} if result else {"success":False}
 
 @app.post("/signIN")
 def signIN(signInDetails:singInData):
@@ -159,28 +143,28 @@ def signIN(signInDetails:singInData):
         identifierType = "p"
     if bool(email_re.match(signInDetails.identifier.strip())) == True:
         identifierType = "e"
-    acc = db.signIN(identifierType,signInDetails.identifier, signInDetails.password)   
-    print(identifierType)
+    acc = db.signIN(identifierType,signInDetails.identifier, signInDetails.password)
+
+    ## if any issue is encountered
+    if acc == False:
+        return {"success":False}
     if passwordHash == acc["items"][5]:
-        print("match")
-        return {"success": True, "data":{"cart":[],"type":acc["type"], "id":acc["items"][0], "firstName":acc["items"][1], "lastName":acc["items"][2], "phoneNumber":acc["items"][3], "email":acc["items"][4], "address":acc["items"][6]}}
+        return {"success": True, "data":{"cart":[], "type":acc["type"], "id":acc["items"][0], "firstName":acc["items"][1], "lastName":acc["items"][2], "phoneNumber":acc["items"][3], "email":acc["items"][4], "address":acc["items"][6]}}
     else:
-        print("unmatch")
+        return {"success":False}
 
 
 @app.get("/searchProduct/{filter}")
 def searchProduct(filter: str):
     result = db.searchProduct(filter)
-    return {"success": True, "data": result}
+    return {"success": True, "data": result} if result else {"success":False}
 
 @app.post("/order_actions")
 def orderActions(action: orderActionData):
-    print(action)
     db.orderAction(action.id, action.action)
     return {"success": True, "data":True}
 
 @app.get("/order_status/{id}")
 def orderStatus(id: str):
-    print(id)
     response = db.orderStatus(id=id)
     return {"success": response}
