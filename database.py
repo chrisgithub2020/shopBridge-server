@@ -1,11 +1,14 @@
 import sqlite3 
 import hashlib
 import uuid
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 
 class DBManip:
-    connection = sqlite3.connect("shopBridge.db", check_same_thread=False)
+    connection = sqlite3.connect(str(os.getenv("DATABASE_URL")), check_same_thread=False)
     cursor = connection.cursor()
 
     def insert_user(self, table, firstName, lastName, contact, email, password: str, address, storeName="", photo="", id_number=""):
@@ -71,22 +74,12 @@ class DBManip:
         except Exception as err:
             return False
     
-    def signIN(self, identifier_type, identifier, password):
+    def signIN(self, identifier_type, identifier, acc_type):
         try:
-            iden = "contact"
-            acc_type = "c"
-            if identifier_type  == "e":
-                iden = "email"
-            select_string = f"""SELECT * FROM Consumers WHERE {iden}="{identifier}";"""
+            select_string = f"""SELECT * FROM {acc_type} WHERE {identifier_type}="{identifier}";"""
             self.cursor.execute(select_string)
-            items = self.cursor.fetchall()
-            print(items, "items")
-            if len(items) == 0:
-                select_string = f"""SELECT * FROM Sellers WHERE {iden}="{identifier}";"""
-                acc_type = "s"
-            self.cursor.execute(select_string)
-            items = self.cursor.fetchall()
-            return {"type":acc_type, "items":items[0]}
+            acc = self.cursor.fetchall()
+            return acc
         except Exception as err:
             return False
     
