@@ -49,8 +49,8 @@ def searchProduct(filter: str):
     result = db.searchProduct(filter)
     return {"success": True, "data": result} if result else {"success":False}
 
-@router.post("/complete_order")
-def completeOrder(orderDetails: orderData, verification:tuple[bool, Any]=Depends(verify_request)):
+@router.post("/place_order")
+def placeOrder(orderDetails: orderData, verification:tuple[bool, Any]=Depends(verify_request)):
     if verification[0] == False:
         if verification[1] == "refresh":
             return status.HTTP_401_UNAUTHORIZED
@@ -59,6 +59,6 @@ def completeOrder(orderDetails: orderData, verification:tuple[bool, Any]=Depends
         else:
             return status.HTTP_204_NO_CONTENT
     
-    result = db.completeOrder(orderDetails.product, orderDetails.address, orderDetails.consumer, orderDetails.amountPaid, orderDetails.quantity)
+    result = db.placeOrder(orderDetails.product, orderDetails.address, orderDetails.consumer, orderDetails.amountPaid, orderDetails.quantity)
     return {"success": True, "data": orderDetails} if result else {"success":False}
 
