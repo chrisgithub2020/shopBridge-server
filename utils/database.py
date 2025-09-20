@@ -1,42 +1,50 @@
-import sqlite3 
+from sqlmodel import create_engine, SQLModel, Session
 import hashlib
 import uuid
 import os
 from dotenv import load_dotenv
 
+from .table import Item, Seller, Consumer
+
 load_dotenv()
 
 
 class DBManip:
-    connection = sqlite3.connect(str(os.getenv("DATABASE_URL")), check_same_thread=False)
-    cursor = connection.cursor()
+    engine = create_engine(str(os.getenv("DATABASE_URL")), echo=False, connect_args={"check_same_thread": False})
+    def __init__(self) -> None:
+        SQLModel.metadata.create_all(self.engine)
 
-    def insert_user(self, table, firstName, lastName, contact, email, password: str, address, storeName="", photo="", id_number=""):
-        insert_string = ""
-        acc_id = str(uuid.uuid4())
-        encoded_password = password.encode('utf8')        
-        passwordHash = hashlib.sha256(encoded_password).hexdigest()
-        if table == "Consumers":
-            insert_string = f"""INSERT INTO {table} VALUES ("{acc_id}", "{firstName.strip()}", "{lastName.strip()}", "{contact.strip()}", "{email}", "{passwordHash}", "{address.strip()}")"""
-            print(insert_string)
-        elif table == "Sellers":
-            insert_string = f"""INSERT INTO {table} VALUES ("{acc_id}", "{storeName.strip()}", "{str(email.strip())}", "{contact.strip()}", "{firstName.strip()}", "{passwordHash}", "{photo}", "{id_number}")"""
-            print(insert_string)
-            
-        self.cursor.execute(insert_string)
-        self.connection.commit()
+    def insert_user(self, table, firstName, lastName, contact, email, password: str, address, storeName="", photo="", verification_number=""):
+        try:
+            acc_id = uuid.uuid4()
+            encoded_password = password.encode('utf8')        
+            passwordHash = hashlib.sha256(encoded_password).hexdigest()
+            with Session(self.engine) as session:
+                if table == "Consumer":
+                    consumer = Consumer(id=acc_id, firstName=firstName, lastName=lastName, email=email, phoneNumber=contact, address=address, password=passwordHash)
+                    session.add(consumer)
+                    session.commit()
+                    session.refresh(consumer)
+                else:
+                    seller = Seller(id=acc_id, firstName=firstName, lastName=lastName, storeName=storeName, email=email, phoneNumber=contact, address=address, storePhoto=photo, password=passwordHash, cardNumber=verification_number)
+                    session.add(seller)
+                    session.commit()
+                    session.refresh(seller)
+        except:
+            return False
         return acc_id
     
     def insert_product(self,seller_id, product_photos, name, description, price, quantity, mainCat, subCat):
         try:
-            product_id = str(uuid.uuid4())
-            insert_string = f"""INSERT INTO Products VALUES ("{product_id}","{seller_id}", "{name}", "{description}","{mainCat}", "{subCat}", "{price}", "{quantity}", "{product_photos}")"""
-            self.cursor.execute(insert_string)
-            self.connection.commit()
+            with Session(self.engine) as session:
+                item = Item(itemName=name, itemDesc=description, stockQuantity=quantity, itemPrice=price, seller=seller_id, itemSubCat=subCat, itemMainCat=mainCat)
+                session.add(item)
+                session.commit()
+                session.refresh(item)
         except Exception as err:
             return False
 
-        return product_id
+        return True
     
     def get_store_items(self, id:str):
         try:
