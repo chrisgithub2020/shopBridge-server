@@ -22,7 +22,6 @@ class SellerData(BaseModel):
     type: str
 
 class ItemData(BaseModel):
-    itemSeller: str
     itemImages: list
     itemDescription: str
     itemName: str
@@ -32,7 +31,6 @@ class ItemData(BaseModel):
     itemMainCat: str
 
 class orderData(BaseModel):
-    consumer: str
     product: str
     amountPaid: float
     address: str
@@ -46,7 +44,7 @@ class singInData(BaseModel):
 
 class restockData(BaseModel):
     itemID: str
-    restockNumber: str
+    restockNumber: int
 
 class orderActionData(BaseModel):
     id: str

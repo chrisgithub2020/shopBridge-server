@@ -1,4 +1,5 @@
 from sqlmodel import create_engine, SQLModel, Session, select
+from sqlalchemy import or_
 import hashlib
 import uuid
 import os
@@ -21,7 +22,7 @@ class DBManip:
             encoded_password = password.encode('utf8')        
             passwordHash = hashlib.sha256(encoded_password).hexdigest()
             with Session(self.engine) as session:
-                if table == "Consumer":
+                if table == "consumer":
                     consumer = Consumer(id=acc_id, firstName=firstName, lastName=lastName, email=email, phoneNumber=contact, address=address, password=passwordHash)
                     session.add(consumer)
                     session.commit()
@@ -31,9 +32,20 @@ class DBManip:
                     session.add(seller)
                     session.commit()
                     session.refresh(seller)
-        except:
+        except Exception as err:
+            print(err)
             return False
         return acc_id
+    
+    def signIN(self, identifier, acc_type):
+        try:
+            statement = select(Seller if acc_type == "seller" else Consumer).where(or_(Seller.email==identifier , Seller.phoneNumber==identifier) if acc_type == "seller" else or_(Consumer.email==identifier, Consumer.phoneNumber==identifier))
+            with Session(self.engine) as session:
+                acc = session.exec(statement=statement).one()
+                return acc
+        except Exception as err:
+            print(err)
+            return False
     
     def insert_product(self,seller_id, product_photos, name, description, price, quantity, mainCat, subCat):
         try:
@@ -44,14 +56,15 @@ class DBManip:
                 session.refresh(item)
             return item.id
         except Exception as err:
+            print(err)
             return False
     
-    def get_store_items(self, id:str):
+    def get_store_items(self, seller_id:str):
         cols = [Item.id, Item.itemName, Item.itemDesc, Item.stockQuantity, Item.itemPrice, Item.itemImages]
         try:
-            statement = select(*cols).where(Item.seller==id)
+            statement = select(*cols).where(Item.seller==seller_id)
             with Session(self.engine) as session:
-                items = session.exec(statement=statement).all()
+                items = [dict(zip([col.key for col in cols], row)) for row in session.exec(statement=statement).all()]                
                 return items
         except Exception as err:
             return False
@@ -61,16 +74,17 @@ class DBManip:
         try:
             statement = select(*cols).join(Seller)
             with Session(self.engine) as session:
-                items = session.exec(statement=statement).all()
+                items = [dict(zip([col.key for col in cols], row)) for row in session.exec(statement=statement).all()] # type: ignore
                 return items
         except Exception as err:
             return False
     
     def get_product_details(self, id: str):
+        cols = [Item.itemName, Item.itemPrice, Item.itemDesc]
         try:
-            statement = select(Item.itemName, Item.itemPrice, Item.itemDesc).where(Item.id==id)
+            statement = select(*cols).where(Item.id==id)
             with Session(self.engine) as session:
-                item = session.exec(statement=statement).all()
+                item = dict(zip([col.key for col in cols], [row for row in session.exec(statement=statement).one()]))  # type: ignore
                 return item
         except Exception as err:
             return False
@@ -81,15 +95,6 @@ class DBManip:
             with Session(self.engine) as session:
                 items = session.exec(statement=statement).all()
                 return items
-        except Exception as err:
-            return False
-    
-    def signIN(self, identifier, acc_type):
-        try:
-            statement = select(Seller if acc_type == "seller" else Consumer).where((Seller.email==identifier or Seller.phoneNumber==identifier) if acc_type == "seller" else (Consumer.email==identifier or Consumer.phoneNumber==identifier))
-            with Session(self.engine) as session:
-                acc = session.exec(statement=statement).all()
-                return acc
         except Exception as err:
             return False
     
@@ -119,13 +124,10 @@ class DBManip:
     def searchProduct(self, filter):
         cols = [Item.id, Item.itemName, Item.itemPrice, Seller.storeName, Item.itemImages]
         try:
-            statement = select(*cols).join(Seller).where(Item.itemName.like(f"%{filter}%"))
+            statement = select(*cols).join(Seller).where(Item.itemName.like(f"%{filter}%")) # type: ignore
             with Session(self.engine) as session:
-                items = session.exec(statement=statement).all()
+                items = [dict(zip([col.key for col in cols], row)) for row in session.exec(statement=statement).all()] # type: ignore
                 return items
-            # select_string = f"""SELECT Products.id, Products.product_name, Products.price, Sellers.store_name, Products.photos FROM Products INNER JOIN Sellers ON Products.seller_id=Sellers.id WHERE Products.product_name LIKE "%{filter}%";"""
-            # self.cursor.execute(select_string)
-            # return self.cursor.fetchall()
         except Exception as err:
             return False
     
@@ -152,27 +154,18 @@ class DBManip:
                 session.refresh(restock)
 
                 return restock.id
-            # restockID = str(uuid.uuid4())
-            # update_query = f"""UPDATE Products SET quantity="{amount}" WHERE Product.id="{id}";"""
-            # self.cursor.execute(update_query)
-            # select_seller = """SELECT seller_id FROM Products;"""
-            # self.cursor.execute(select_seller)
-            # seller = self.cursor.fetchall()[0]
-            # insert_query = f"""INSERT INTO Restock VALUES ("{restockID}","{id}","{seller}" CURRENT_TIMESTAMP )"""
-            # self.cursor.execute(insert_query)
-            # self.connection.commit()
-            # return restockID
         except Exception as err:
             return False
     
     def getStoreOrders(self, seller_id):
         cols = [Order.id, Order.item, Order.address, Order.amount, Order.quatity, Consumer.firstName, Consumer.lastName, Consumer.phoneNumber]
-        statement = select(*cols).join(Consumer).where(Order.seller==id)
+        statement = select(*cols).join(Consumer).where(Order.seller==seller_id)
         try:
             with Session(self.engine) as session:
                 orders = session.exec(statement=statement).all()
                 return orders
-        except:
+        except Exception as err:
+            print(err)
             return False
     
     def orderCompleted(self, order_id):
@@ -185,9 +178,6 @@ class DBManip:
                 session.add(order)
                 session.commit()
                 session.refresh(order)
-            # update_query = f"""UPDATE Orders SET date_received="{action}" WHERE order_id="{id}";"""
-            # self.cursor.execute(update_query)
-            # self.connection.commit()
         except:
             return False
         
@@ -211,4 +201,17 @@ class DBManip:
                 return order
         except Exception as err:
             return False
+        
 
+    def deleteItem(self, item_id: str):
+        statement = select(Item).where(Item.id==item_id)
+        try:
+            with Session(self.engine) as session:
+                item = session.exec(statement=statement).one()
+                session.delete(item)
+                session.commit()
+
+            return True
+        except Exception as err:
+            print(err)
+            return False

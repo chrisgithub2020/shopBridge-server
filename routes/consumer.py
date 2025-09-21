@@ -59,6 +59,6 @@ def placeOrder(orderDetails: orderData, verification:tuple[bool, Any]=Depends(ve
         else:
             return status.HTTP_204_NO_CONTENT
     
-    result = db.placeOrder(orderDetails.product, orderDetails.address, orderDetails.consumer, orderDetails.amountPaid, orderDetails.quantity)
-    return {"success": True, "data": orderDetails} if result else {"success":False}
+    result = db.placeOrder(orderDetails.product, orderDetails.address, verification[1]["id"], orderDetails.amountPaid, orderDetails.quantity)
+    return {"success": True} if result else {"success":False}
 

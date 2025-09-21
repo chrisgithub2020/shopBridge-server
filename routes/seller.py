@@ -22,7 +22,7 @@ def addItemToStore(data: ItemData, verification:tuple[bool, Any]=Depends(verify_
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
     
-    product_id = db.insert_product(data.itemSeller, data.itemImages, data.itemName,data.itemDescription, data.itemPrice, data.itemQuantity, data.itemMainCat, data.itemSubCat)
+    product_id = db.insert_product(verification[1]["id"], data.itemImages, data.itemName,data.itemDescription, data.itemPrice, data.itemQuantity, data.itemMainCat, data.itemSubCat)
     return {"success": True, "data":{"id": product_id, "name": data.itemName, "quantity": data.itemQuantity, "price":data.itemPrice, "photo":data.itemImages[0]}, "description":data.itemDescription} if product_id != False else {"success":False}
 
 
@@ -56,11 +56,12 @@ def TakeDown(id: str, verification:tuple[bool, Any]=Depends(verify_request)):
         
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
+    
+    result = db.deleteItem(id)
+    return result
 
-    return True
-
-@router.get("/store_orders/{id}")
-def get_store_orders(id: str, verification:tuple[bool, Any]=Depends(verify_request)):
+@router.get("/store_orders")
+def get_store_orders(verification:tuple[bool, Any]=Depends(verify_request)):
     if verification[0] == False:
         if verification[1] == "refresh":
             return status.HTTP_401_UNAUTHORIZED
@@ -72,11 +73,11 @@ def get_store_orders(id: str, verification:tuple[bool, Any]=Depends(verify_reque
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
 
-    result = db.getStoreOrders(id)
-    return {"success": True, "data": result} if result else {"success":False}
+    result = db.getStoreOrders(verification[1]["id"])
+    return {"success": True, "data": result} if result != False else {"success":False}
 
-@router.get("/store_items/{id}")
-def get_store_items(id: str, verification:tuple[bool, Any]=Depends(verify_request)):
+@router.get("/store_items")
+def get_store_items(verification:tuple[bool, Any]=Depends(verify_request)):
     if verification[0] == False:
         if verification[1] == "refresh":
             return status.HTTP_401_UNAUTHORIZED
@@ -88,5 +89,5 @@ def get_store_items(id: str, verification:tuple[bool, Any]=Depends(verify_reques
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
 
-    items = db.get_store_items(id)
+    items = db.get_store_items(verification[1]["id"])
     return {"success": True, "data":items} if items else {"success":False}

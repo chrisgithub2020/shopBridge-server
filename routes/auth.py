@@ -14,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.post("/consumer")
 def signUp_consumer(data: ConsumerData):# -> dict[str, Any] | dict[str, bool]:
-    acc_id = db.insert_user("Consumers",data.firstName,data.lastName,data.phoneNumber,data.email, data.password, data.address)
+    acc_id = db.insert_user("consumer",data.firstName,data.lastName,data.phoneNumber,data.email, data.password, data.address)
 
     if acc_id == False: 
         return {"success":False}
@@ -29,7 +29,7 @@ def signUp_consumer(data: ConsumerData):# -> dict[str, Any] | dict[str, bool]:
 
 @router.post("/seller")
 def signUp_seller(data: SellerData):
-    acc_id = db.insert_user("Sellers", data.firstName,data.lastName,data.phoneNumber, data.email, data.password, data.address,data.store_name, data.store_photo)
+    acc_id = db.insert_user("seller", data.firstName,data.lastName,data.phoneNumber, data.email, data.password, data.address,data.store_name, data.store_photo)
     
     if acc_id == False:
         return {"success": False}
@@ -45,25 +45,18 @@ def signUp_seller(data: SellerData):
 
 @router.post("/signIN")
 def signIN(signInDetails: singInData):
-    identifierType = None
     encoded_password = signInDetails.password.encode("utf8")
     passwordHash = hashlib.sha256(encoded_password).hexdigest()
 
-    phone_re = re.compile("^\+?(\d{1,3})?[-.\s]?(\d{1,4})[-.\s]?(\d{1,4})[-.\s]?(\d{1,9})$")
-    email_re = re.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-    if (bool(phone_re.match(signInDetails.identifier.strip()))) == True:
-        identifierType = "contact"
-    if bool(email_re.match(signInDetails.identifier.strip())) == True:
-        identifierType = "email"
-    acc = db.signIN(identifierType, signInDetails.identifier, "Sellers" if signInDetails.acc_type == "seller" else "Consumers")
+    acc = db.signIN(signInDetails.identifier, signInDetails.acc_type)
 
     ## if any issue is encountered
     if acc == False:
         return {"success":False}
     
-    if passwordHash == passwordHash:
-        refresh_payload = {"id":acc[0], "acc_type": signInDetails.acc_type}
-        access_payload = {"id":acc[0], "name": acc[1]+" "+acc[2], "address":acc[6], "acc_type": signInDetails.acc_type}
+    if passwordHash == acc.password:
+        refresh_payload = {"id":acc.id, "acc_type": signInDetails.acc_type}
+        access_payload = {"id":acc.id, "name": acc.firstName+" "+acc.lastName, "address":acc.address, "acc_type": signInDetails.acc_type}
 
         refresh_token = jwt_api.create_token(payload=refresh_payload, token_type="refresh")
         access_token = jwt_api.create_token(payload=access_payload, token_type="access")
