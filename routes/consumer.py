@@ -30,14 +30,9 @@ def getCartContent(cartlist:str, verification:tuple[bool, Any]=Depends(verify_re
             return status.HTTP_400_BAD_REQUEST
         else:
             return status.HTTP_204_NO_CONTENT
-    
-    content = []
-    items = cartlist.split(",")
-    for id in items:
-        details = db.get_cart_contents(id=id)
-        if details:
-            content.append(details[0])
-    return {"success": True, "data": content}
+    item_ids = cartlist.split(",")
+    items = db.get_cart_contents(ids=item_ids)
+    return {"success": True, "data": items}
 
 @router.get("/getProductDetails/{ProductID}")
 def getProductDetails(ProductID:str):
@@ -47,7 +42,8 @@ def getProductDetails(ProductID:str):
 @router.get("/searchProduct/{filter}")
 def searchProduct(filter: str):
     result = db.searchProduct(filter)
-    return {"success": True, "data": result} if result else {"success":False}
+    print(result)
+    return {"success": True, "data": result} if result != False else {"success":False}
 
 @router.post("/place_order")
 def placeOrder(orderDetails: orderData, verification:tuple[bool, Any]=Depends(verify_request)):

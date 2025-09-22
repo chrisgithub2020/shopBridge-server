@@ -49,6 +49,7 @@ def signIN(signInDetails: singInData):
     passwordHash = hashlib.sha256(encoded_password).hexdigest()
 
     acc = db.signIN(signInDetails.identifier, signInDetails.acc_type)
+    print(acc)
 
     ## if any issue is encountered
     if acc == False:

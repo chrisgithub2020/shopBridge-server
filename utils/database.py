@@ -89,11 +89,13 @@ class DBManip:
         except Exception as err:
             return False
     
-    def get_cart_contents(self, id: str):
+    def get_cart_contents(self, ids: list[str]):
+        cols = [Item.id, Item.itemName, Item.itemPrice, Item.itemDesc, Item.itemImages]
         try:
-            statement = select(Item.itemName, Item.itemPrice, Item.itemDesc, Item.itemImages).where(Item.id==id)
+            statement = select(*cols).where(Item.id.in_(ids)) # type: ignore
             with Session(self.engine) as session:
-                items = session.exec(statement=statement).all()
+                items = [dict(zip([col.key for col in cols], row)) for row in session.exec(statement=statement).all()] # type: ignore
+                print(items)
                 return items
         except Exception as err:
             return False
@@ -157,7 +159,7 @@ class DBManip:
         except Exception as err:
             return False
     
-    def getStoreOrders(self, seller_id):
+    def get_store_orders(self, seller_id):
         cols = [Order.id, Order.item, Order.address, Order.amount, Order.quatity, Consumer.firstName, Consumer.lastName, Consumer.phoneNumber]
         statement = select(*cols).join(Consumer).where(Order.seller==seller_id)
         try:
@@ -168,7 +170,7 @@ class DBManip:
             print(err)
             return False
     
-    def orderCompleted(self, order_id):
+    def order_completed(self, order_id):
         statement = select(Order).where(Order.id==order_id)
         try:
             with Session(self.engine) as session:
@@ -193,7 +195,7 @@ class DBManip:
         except:
             return False
 
-    def getOrderStatus(self, order_id):
+    def get_order_status(self, order_id):
         statement = select(Order).where(Order.id==order_id)
         try:
             with Session(self.engine) as session:

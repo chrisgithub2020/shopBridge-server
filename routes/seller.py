@@ -2,7 +2,7 @@ from fastapi import Depends, status, APIRouter
 from typing import Any
 
 from utils.dependencies import verify_request
-from utils.validators import ItemData, restockData
+from utils.validators import ItemData, restockData, orderActionData
 from utils.database import DBManip
 
 db = DBManip()
@@ -73,7 +73,7 @@ def get_store_orders(verification:tuple[bool, Any]=Depends(verify_request)):
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
 
-    result = db.getStoreOrders(verification[1]["id"])
+    result = db.get_store_orders(verification[1]["id"])
     return {"success": True, "data": result} if result != False else {"success":False}
 
 @router.get("/store_items")
@@ -91,3 +91,13 @@ def get_store_items(verification:tuple[bool, Any]=Depends(verify_request)):
 
     items = db.get_store_items(verification[1]["id"])
     return {"success": True, "data":items} if items else {"success":False}
+
+@router.post("/order_actions")
+def orderActions(action: orderActionData):
+    db.orderAction(action.id, action.action)
+    return {"success": True, "data":True}
+
+@router.get("/order_status/{id}")
+def orderStatus(order_id: str):
+    response = db.get_order_status(order_id=id)
+    return {"success": response}
