@@ -5,6 +5,7 @@ import re
 from utils.validators import ConsumerData, SellerData, singInData
 from utils.tokens import JwtToken
 from utils.database import DBManip
+from utils.save_item_images import save_images, load_image
 
 jwt_api = JwtToken()
 db = DBManip()
@@ -29,13 +30,13 @@ def signUp_consumer(data: ConsumerData):# -> dict[str, Any] | dict[str, bool]:
 
 @router.post("/seller")
 def signUp_seller(data: SellerData):
-    acc_id = db.insert_user("seller", data.firstName,data.lastName,data.phoneNumber, data.email, data.password, data.address,data.store_name, data.store_photo)
-    
-    if acc_id == False:
+    acc_result = db.insert_user("seller", data.firstName,data.lastName,data.phoneNumber, data.email, data.password, data.address,data.store_name, data.store_photo)
+    if acc_result == False:
         return {"success": False}
     
-    refresh_payload = {"id": acc_id, "acc_type": "seller"}
-    access_payload = {"id":acc_id, "store_name":data.store_name, "name":data.firstName+" "+data.lastName, "acc_type": "seller"}
+    image = save_images(data.store_photo, acc_result[1])
+    refresh_payload = {"id": acc_result[0], "acc_type": "seller"}
+    access_payload = {"id":acc_result[0], "store_name":data.store_name, "name":data.firstName+" "+data.lastName, "acc_type": "seller"}
 
     refresh_token = jwt_api.create_token(payload=refresh_payload, token_type="refresh")
     access_token = jwt_api.create_token(payload=access_payload, token_type="access")    
@@ -61,6 +62,8 @@ def signIN(signInDetails: singInData):
 
         refresh_token = jwt_api.create_token(payload=refresh_payload, token_type="refresh")
         access_token = jwt_api.create_token(payload=access_payload, token_type="access")
-        return {"success": True, "r_token":refresh_token, "a_token":access_token}
+
+        response = {"success": True, "r_token":refresh_token, "a_token":access_token}
+        return response
     else:
         return {"success":False}

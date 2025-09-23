@@ -22,7 +22,7 @@ class SellerData(BaseModel):
     type: str
 
 class ItemData(BaseModel):
-    itemImages: list
+    itemImages: list[str]
     itemDescription: str
     itemName: str
     itemPrice: str

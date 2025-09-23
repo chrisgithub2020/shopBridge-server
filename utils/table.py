@@ -21,7 +21,7 @@ class Seller(SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     phoneNumber: str = Field(unique=True, index=True)
     address: str
-    storePhoto: str
+    storePhoto: str = Field(default_factory=uuid.uuid4().__str__)
     password: str
     cardNumber: str ## this is the id card of the seller i.e ghana card or passport id
 

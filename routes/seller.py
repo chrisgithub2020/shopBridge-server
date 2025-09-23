@@ -4,6 +4,7 @@ from typing import Any
 from utils.dependencies import verify_request
 from utils.validators import ItemData, restockData, orderActionData
 from utils.database import DBManip
+from utils.save_item_images import save_images
 
 db = DBManip()
 router = APIRouter(prefix="/seller", tags=["Seller"])
@@ -22,8 +23,11 @@ def addItemToStore(data: ItemData, verification:tuple[bool, Any]=Depends(verify_
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
     
-    product_id = db.insert_product(verification[1]["id"], data.itemImages, data.itemName,data.itemDescription, data.itemPrice, data.itemQuantity, data.itemMainCat, data.itemSubCat)
-    return {"success": True, "data":{"id": product_id, "name": data.itemName, "quantity": data.itemQuantity, "price":data.itemPrice, "photo":data.itemImages[0]}, "description":data.itemDescription} if product_id != False else {"success":False}
+    outcome = db.insert_product(verification[1]["id"], data.itemImages, data.itemName,data.itemDescription, data.itemPrice, data.itemQuantity, data.itemMainCat, data.itemSubCat)
+    if outcome != False:
+        image = save_images(data.itemImages, outcome[1])
+        return {"success": True, "data":{"id": outcome[0], "name": data.itemName, "quantity": data.itemQuantity, "price":data.itemPrice, "photo":data.itemImages[0]}, "description":data.itemDescription}
+    return {"success":False}
 
 
 
@@ -90,12 +94,13 @@ def get_store_items(verification:tuple[bool, Any]=Depends(verify_request)):
         return status.HTTP_403_FORBIDDEN
 
     items = db.get_store_items(verification[1]["id"])
+    print(items)
     return {"success": True, "data":items} if items else {"success":False}
 
-@router.post("/order_actions")
-def orderActions(action: orderActionData):
-    db.orderAction(action.id, action.action)
-    return {"success": True, "data":True}
+# @router.post("/order_actions")
+# def orderActions(action: orderActionData):
+#     db.orderAction(action.id, action.action)
+#     return {"success": True, "data":True}
 
 @router.get("/order_status/{id}")
 def orderStatus(order_id: str):

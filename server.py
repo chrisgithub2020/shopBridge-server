@@ -6,6 +6,7 @@ from utils.database import DBManip
 from utils.validators import  orderActionData
 from routes import auth_router, consumer_router, seller_router
 from utils.dependencies import verify_request
+from utils.save_item_images import load_image
 
 app = FastAPI()
 app.add_middleware(
@@ -33,3 +34,13 @@ def accountType(verification = Depends(verify_request)):
             return status.HTTP_204_NO_CONTENT
         
     return verification[1]["acc_type"]
+
+@app.get("/get_image/{image_id}", tags=["Main"])
+def get_image(image_id: str):
+    image_str = load_image(image_id=image_id)
+    return {"success":True, "data":image_str.split(",")[0]}
+
+@app.get("/get_images/{image_id}", tags=["Main"])
+def get_images(image_id: str):
+    image_str = load_image(image_id=image_id)
+    return {"success":True, "data":image_str.split(",")}

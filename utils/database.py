@@ -27,15 +27,16 @@ class DBManip:
                     session.add(consumer)
                     session.commit()
                     session.refresh(consumer)
+                    return acc_id, ""
                 else:
-                    seller = Seller(id=acc_id, firstName=firstName, lastName=lastName, storeName=storeName, email=email, phoneNumber=contact, address=address, storePhoto=photo, password=passwordHash, cardNumber=verification_number)
+                    seller = Seller(id=acc_id, firstName=firstName, lastName=lastName, storeName=storeName, email=email, phoneNumber=contact, address=address, password=passwordHash, cardNumber=verification_number)
                     session.add(seller)
                     session.commit()
                     session.refresh(seller)
+                    return acc_id, seller.storePhoto
         except Exception as err:
             print(err)
             return False
-        return acc_id
     
     def signIN(self, identifier, acc_type):
         try:
@@ -54,7 +55,7 @@ class DBManip:
                 session.add(item)
                 session.commit()
                 session.refresh(item)
-            return item.id
+            return item.id, item.itemImages
         except Exception as err:
             print(err)
             return False
@@ -80,7 +81,7 @@ class DBManip:
             return False
     
     def get_product_details(self, id: str):
-        cols = [Item.itemName, Item.itemPrice, Item.itemDesc]
+        cols = [Item.itemName, Item.itemPrice, Item.itemDesc, Item.itemImages]
         try:
             statement = select(*cols).where(Item.id==id)
             with Session(self.engine) as session:
@@ -155,7 +156,7 @@ class DBManip:
                 session.refresh(item)
                 session.refresh(restock)
 
-                return restock.id
+            return True
         except Exception as err:
             return False
     
