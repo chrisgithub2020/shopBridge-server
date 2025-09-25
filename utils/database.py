@@ -119,7 +119,7 @@ class DBManip:
         try:
             select_statement = select(*cols).join(Seller).where(Item.itemMainCat==mainCat and Item.itemSubCat in subCat)
             with Session(self.engine) as session:
-                items = session.exec(statement=select_statement).all()
+                items = [dict(zip([col.key for col in cols], row)) for row in session.exec(statement=select_statement).all()] # type: ignore
                 return items
         except Exception as err:
             return False

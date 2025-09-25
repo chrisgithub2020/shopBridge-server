@@ -2,7 +2,7 @@ from fastapi import Depends, status, APIRouter
 from typing import Any
 
 from utils.dependencies import verify_request
-from utils.validators import ItemData, restockData, orderActionData
+from utils.validators import ItemData, restockData, orderActionData, takeDownData
 from utils.database import DBManip
 from utils.save_item_images import save_images
 
@@ -48,8 +48,8 @@ def restockItem(data: restockData, verification:tuple[bool, Any]=Depends(verify_
     return result
 
 
-@router.get("/take_down/{id}")
-def TakeDown(id: str, verification:tuple[bool, Any]=Depends(verify_request)):
+@router.post("/take_down")
+def TakeDown(data: takeDownData, verification:tuple[bool, Any]=Depends(verify_request)):
     if verification[0] == False:
         if verification[1] == "refresh":
             return status.HTTP_401_UNAUTHORIZED
@@ -60,9 +60,8 @@ def TakeDown(id: str, verification:tuple[bool, Any]=Depends(verify_request)):
         
     if verification[1]["acc_type"] != "seller":
         return status.HTTP_403_FORBIDDEN
-    
-    result = db.deleteItem(id)
-    return result
+    result = db.deleteItem(data.itemId)
+    return result and data.storeName == verification[1]["store_name"]
 
 @router.get("/store_orders")
 def get_store_orders(verification:tuple[bool, Any]=Depends(verify_request)):

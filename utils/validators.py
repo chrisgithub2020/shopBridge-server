@@ -49,3 +49,7 @@ class restockData(BaseModel):
 class orderActionData(BaseModel):
     id: str
     action:str
+
+class takeDownData(BaseModel):
+    itemId: str
+    storeName: str

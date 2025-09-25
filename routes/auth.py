@@ -5,6 +5,7 @@ import re
 from utils.validators import ConsumerData, SellerData, singInData
 from utils.tokens import JwtToken
 from utils.database import DBManip
+from utils.table import Seller
 from utils.save_item_images import save_images, load_image
 
 jwt_api = JwtToken()
@@ -59,7 +60,9 @@ def signIN(signInDetails: singInData):
     if passwordHash == acc.password:
         refresh_payload = {"id":acc.id, "acc_type": signInDetails.acc_type}
         access_payload = {"id":acc.id, "name": acc.firstName+" "+acc.lastName, "address":acc.address, "acc_type": signInDetails.acc_type}
-
+        if isinstance(acc, Seller):
+            access_payload["store_name"] = acc.storeName
+            
         refresh_token = jwt_api.create_token(payload=refresh_payload, token_type="refresh")
         access_token = jwt_api.create_token(payload=access_payload, token_type="access")
 
